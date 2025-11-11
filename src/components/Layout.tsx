@@ -1,19 +1,19 @@
-import React from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { useAuth } from '../auth/AuthProvider'
-import AppBar from '@mui/material/AppBar'
-import Toolbar from '@mui/material/Toolbar'
-import Typography from '@mui/material/Typography'
-import Button from '@mui/material/Button'
-import Box from '@mui/material/Box'
+import React from 'react';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useAuth } from '../auth/AuthProvider';
+import AppBar from '@mui/material/AppBar';
+import Toolbar from '@mui/material/Toolbar';
+import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
+import Box from '@mui/material/Box';
 
 export default function Layout() {
-  const { user, logout } = useAuth()
-  const navigate = useNavigate()
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   function handleLogout() {
-    logout()
-    navigate('/login')
+    logout();
+    navigate('/login');
   }
 
   return (
@@ -24,16 +24,32 @@ export default function Layout() {
             EV Management
           </Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button color="inherit" component={NavLink as any} to="/dashboard">Dashboard</Button>
-            <Button color="inherit" component={NavLink as any} to="/vehicles">Vehicles</Button>
-            <Button color="inherit" component={NavLink as any} to="/contracts">Contracts</Button>
-            <Button color="inherit" component={NavLink as any} to="/customers">Customers</Button>
-            <Button color="inherit" component={NavLink as any} to="/testdrives">Test Drives</Button>
-            <Button color="inherit" component={NavLink as any} to="/payments">Payments</Button>
+            <Button color="inherit" component={NavLink as any} to="/dashboard">
+              Dashboard
+            </Button>
+            <Button color="inherit" component={NavLink as any} to="/vehicles">
+              Vehicles
+            </Button>
+            <Button color="inherit" component={NavLink as any} to="/contracts">
+              Contracts
+            </Button>
+            <Button color="inherit" component={NavLink as any} to="/customers">
+              Customers
+            </Button>
+            <Button color="inherit" component={NavLink as any} to="/testdrives">
+              Test Drives
+            </Button>
+            <Button color="inherit" component={NavLink as any} to="/payments">
+              Payments
+            </Button>
             {user?.role === 'ADMIN' && (
               <>
-                <Button color="inherit" component={NavLink as any} to="/users">Users</Button>
-                <Button color="inherit" component={NavLink as any} to="/settings">Settings</Button>
+                <Button color="inherit" component={NavLink as any} to="/users">
+                  Users
+                </Button>
+                <Button color="inherit" component={NavLink as any} to="/settings">
+                  Settings
+                </Button>
               </>
             )}
           </Box>
@@ -44,10 +60,14 @@ export default function Layout() {
                 <Typography component="span" variant="body2" sx={{ marginRight: 2 }}>
                   {user.name} ({user.role})
                 </Typography>
-                <Button color="inherit" onClick={handleLogout}>Logout</Button>
+                <Button color="inherit" onClick={handleLogout}>
+                  Logout
+                </Button>
               </>
             ) : (
-              <Button color="inherit" component={NavLink as any} to="/login">Login</Button>
+              <Button color="inherit" component={NavLink as any} to="/login">
+                Login
+              </Button>
             )}
           </Box>
         </Toolbar>
@@ -56,5 +76,5 @@ export default function Layout() {
         <Outlet />
       </main>
     </div>
-  )
+  );
 }

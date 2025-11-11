@@ -1,4 +1,4 @@
-import React from 'react'
+import React from 'react';
 
 export default function UsersList() {
   return (
@@ -6,5 +6,5 @@ export default function UsersList() {
       <h2>Users</h2>
       <p>Admin: manage users, roles and dealer assignments. Route: /users</p>
     </div>
-  )
+  );
 }

@@ -1,4 +1,4 @@
-import React from 'react'
+import React from 'react';
 
 export default function Reports() {
   return (
@@ -6,5 +6,5 @@ export default function Reports() {
       <h2>Reports</h2>
       <p>Revenue by day/month/dealer, test drive metrics (charts). Route: /reports</p>
     </div>
-  )
+  );
 }

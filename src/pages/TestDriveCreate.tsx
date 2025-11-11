@@ -1,4 +1,4 @@
-import React from 'react'
+import React from 'react';
 
 export default function TestDriveCreate() {
   return (
@@ -6,5 +6,5 @@ export default function TestDriveCreate() {
       <h2>Create Test Drive</h2>
       <p>Form to create/edit a test drive. Route: /testdrives/create</p>
     </div>
-  )
+  );
 }

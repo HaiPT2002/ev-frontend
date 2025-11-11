@@ -1,9 +1,9 @@
-import React from 'react'
-import Box from '@mui/material/Box'
-import Grid from '@mui/material/Grid'
-import Paper from '@mui/material/Paper'
-import Typography from '@mui/material/Typography'
-import Divider from '@mui/material/Divider'
+import React from 'react';
+import Box from '@mui/material/Box';
+import Grid from '@mui/material/Grid';
+import Paper from '@mui/material/Paper';
+import Typography from '@mui/material/Typography';
+import Divider from '@mui/material/Divider';
 
 function StatCard({ title, value }: { title: string; value: React.ReactNode }) {
   return (
@@ -13,7 +13,7 @@ function StatCard({ title, value }: { title: string; value: React.ReactNode }) {
       </Typography>
       <Typography variant="h5">{value}</Typography>
     </Paper>
-  )
+  );
 }
 
 export default function Dashboard() {
@@ -24,7 +24,13 @@ export default function Dashboard() {
         Dashboard
       </Typography>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4,1fr)' }, gap: 2 }}>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4,1fr)' },
+          gap: 2,
+        }}
+      >
         <StatCard title="Active Contracts" value={124} />
         <StatCard title="Vehicles in Stock" value={58} />
         <StatCard title="Revenue (30d)" value="$42,300" />
@@ -44,5 +50,5 @@ export default function Dashboard() {
         </Paper>
       </Box>
     </Box>
-  )
+  );
 }

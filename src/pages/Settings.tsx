@@ -1,4 +1,4 @@
-import React from 'react'
+import React from 'react';
 
 export default function Settings() {
   return (
@@ -6,5 +6,5 @@ export default function Settings() {
       <h2>Settings</h2>
       <p>Configure VNPAY tmnCode, sandbox secret, and general system settings. Admin only.</p>
     </div>
-  )
+  );
 }

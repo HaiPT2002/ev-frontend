@@ -1,4 +1,4 @@
-import React from 'react'
+import React from 'react';
 
 export default function DealersList() {
   return (
@@ -6,5 +6,5 @@ export default function DealersList() {
       <h2>Dealers</h2>
       <p>Manage dealers, address and contact. Route: /dealers</p>
     </div>
-  )
+  );
 }
