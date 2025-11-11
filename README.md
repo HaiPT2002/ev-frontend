@@ -45,6 +45,24 @@ How to run
 2. Install deps: `npm install`
 3. Run dev server: `npm run dev` (default port 5173)
 
+Quick build & preview
+
+1. Install dependencies (if not already): `npm install`
+2. Build for production: `npm run build`
+3. Preview the production build locally: `npm run preview`
+
+GitHub
+
+Repository: https://github.com/HaiPT2002/ev-frontend
+
+CI
+
+A basic GitHub Actions workflow is included at `.github/workflows/ci.yml` which installs dependencies and runs `npm run build` on pushes and PRs to `main`.
+
+Connecting to backend
+
+By default the frontend expects the backend at the same host under `/api` (relative calls). When running locally, start the Spring Boot backend and ensure CORS is configured or run the frontend with a proxy (Vite config) pointing to your backend URL. Update `src/api/api.ts` baseURL if your backend runs on another host/port.
+
 What I scaffolded
 - Vite + TS config, React entry
 - AuthProvider with role simulation (localStorage)
