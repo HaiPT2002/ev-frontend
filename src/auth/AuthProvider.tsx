@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react'
-import api from '../api/api'
+import api, { setAuthHandlers } from '../api/api'
 
 export type Role = 'ADMIN' | 'EVM_STAFF' | 'DEALER_MANAGER' | 'DEALER_STAFF' | 'GUEST'
 
@@ -45,11 +45,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (token) localStorage.setItem('ev_token', token)
   }
 
+  // attempt to refresh token using backend endpoint if available
+  async function refreshToken(): Promise<boolean> {
+    try {
+      // Backend may not provide a refresh endpoint; try /api/auth/refresh
+      const res = await api.post('/api/auth/refresh')
+      const data = res.data
+      const token = data?.token
+      if (token) {
+        localStorage.setItem('ev_token', token)
+        return true
+      }
+    } catch (e) {
+      // refresh not available or failed
+    }
+    return false
+  }
+
   function logout() {
     setUser(null)
     localStorage.removeItem('ev_user')
     localStorage.removeItem('ev_token')
   }
+
+  // register handlers for api module
+  setAuthHandlers({
+    getToken: () => localStorage.getItem('ev_token'),
+    logout: () => logout(),
+    refreshToken: refreshToken
+  })
 
   return (
     <AuthContext.Provider value={{ user, login, loginWithCredentials, logout }}>{children}</AuthContext.Provider>

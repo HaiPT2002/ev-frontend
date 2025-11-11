@@ -1,14 +1,27 @@
 import axios from 'axios'
 
+type AuthHandlers = {
+  getToken: () => string | null
+  logout: () => void
+  // refreshToken should attempt to get a new token and return true if successful
+  refreshToken?: () => Promise<boolean>
+}
+
+let authHandlers: AuthHandlers | null = null
+
+export function setAuthHandlers(h: AuthHandlers) {
+  authHandlers = h
+}
+
 const api = axios.create({
   baseURL: '/',
   headers: { 'Content-Type': 'application/json' }
 })
 
-// Attach Authorization header from localStorage token when present
+// Attach Authorization header using registered authHandlers if present
 api.interceptors.request.use((config) => {
   try {
-    const token = localStorage.getItem('ev_token')
+    const token = authHandlers?.getToken ? authHandlers.getToken() : localStorage.getItem('ev_token')
     if (token) {
       config.headers = config.headers || {}
       config.headers['Authorization'] = `Bearer ${token}`
@@ -18,6 +31,59 @@ api.interceptors.request.use((config) => {
   }
   return config
 })
+
+// Response interceptor: on 401 try refresh flow (if provided), otherwise logout
+let isRefreshing = false
+let failedQueue: Array<{ resolve: (value?: any) => void; reject: (err: any) => void; config: any }> = []
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((p) => {
+    if (error) p.reject(error)
+    else {
+      if (token) p.config.headers['Authorization'] = `Bearer ${token}`
+      p.resolve(api(p.config))
+    }
+  })
+  failedQueue = []
+}
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config
+    if (error.response && error.response.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true
+      if (authHandlers?.refreshToken) {
+        if (isRefreshing) {
+          return new Promise((resolve, reject) => {
+            failedQueue.push({ resolve, reject, config: originalRequest })
+          })
+        }
+
+        isRefreshing = true
+        try {
+          const ok = await authHandlers.refreshToken()
+          isRefreshing = false
+          if (ok) {
+            const token = authHandlers.getToken()
+            processQueue(null, token)
+            if (token) originalRequest.headers['Authorization'] = `Bearer ${token}`
+            return api(originalRequest)
+          }
+        } catch (e) {
+          isRefreshing = false
+          processQueue(e, null)
+        }
+      }
+
+      // No refresh available or refresh failed -> logout
+      try {
+        authHandlers?.logout()
+      } catch {}
+    }
+    return Promise.reject(error)
+  }
+)
 
 // Vehicles
 export async function getVehicles() {
