@@ -13,10 +13,10 @@ export default function PaymentReturn() {
     const params: Record<string, string> = {}
     const raw = window.location.search || ''
     const urlParams = new URLSearchParams(raw)
-    for (const key of urlParams.keys()) {
-      const value = urlParams.get(key)
+    // iterate parameters using forEach to avoid TS lib mismatch for .keys()
+    urlParams.forEach((value, key) => {
       if (value !== null) params[key] = value
-    }
+    })
 
     if (!params['vnp_TxnRef']) {
       setStatus('error')
