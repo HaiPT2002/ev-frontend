@@ -45,6 +45,7 @@ export default function VehiclesList() {
   const { showError } = useError();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const [search, setSearch] = useState('');
   const [searchDebounced, setSearchDebounced] = useState('');
@@ -135,6 +136,24 @@ export default function VehiclesList() {
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreateOpen(true)}>
               Create
             </Button>
+          )}
+          {/* Dev helper: simulate signing in as EVM_STAFF to test create/update/delete locally */}
+          {(import.meta as any).env?.DEV && (
+            <Tooltip title="Dev: sign in as staff">
+              <Button
+                size="small"
+                onClick={() => {
+                  try {
+                    login('Dev Staff', 'EVM_STAFF');
+                    showError('Signed in as Dev Staff (EVM_STAFF) for testing');
+                  } catch (err) {
+                    showError('Dev login failed');
+                  }
+                }}
+              >
+                Dev Sign-in (Staff)
+              </Button>
+            </Tooltip>
           )}
           <Button
             variant="outlined"
