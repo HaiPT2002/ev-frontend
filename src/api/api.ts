@@ -106,6 +106,26 @@ export async function getVehicleById(id: string) {
   return res.data;
 }
 
+export async function createVehicle(payload: any) {
+  const res = await api.post('/api/vehicles', payload);
+  return res.data;
+}
+
+export async function updateVehicle(id: string, payload: any) {
+  const res = await api.put(`/api/vehicles/${id}`, payload);
+  return res.data;
+}
+
+export async function deleteVehicle(id: string) {
+  const res = await api.delete(`/api/vehicles/${id}`);
+  return res.data;
+}
+
+export async function compareVehicles(firstId: string, secondId: string) {
+  const res = await api.get('/api/vehicles/compare', { params: { firstId, secondId } });
+  return res.data;
+}
+
 // Sale Contracts
 export async function getContracts() {
   const res = await api.get('/api/sale-contracts');

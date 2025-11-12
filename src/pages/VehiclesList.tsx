@@ -1,26 +1,68 @@
-import React, { useEffect, useState } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
-import { getVehicles } from '../api/api';
+import React, { useEffect, useState, useMemo } from 'react';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import {
+  getVehicles,
+  createVehicle,
+  updateVehicle,
+  deleteVehicle,
+  compareVehicles,
+} from '../api/api';
 import { useError } from '../contexts/ErrorContext';
+import { useAuth } from '../auth/AuthProvider';
 import Box from '@mui/material/Box';
-import Grid from '@mui/material/Grid';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
 import Skeleton from '@mui/material/Skeleton';
 import Link from '@mui/material/Link';
+import TextField from '@mui/material/TextField';
+import IconButton from '@mui/material/IconButton';
+import Button from '@mui/material/Button';
+import Tooltip from '@mui/material/Tooltip';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import Checkbox from '@mui/material/Checkbox';
+import Stack from '@mui/material/Stack';
+import CircularProgress from '@mui/material/CircularProgress';
+import InputAdornment from '@mui/material/InputAdornment';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Divider from '@mui/material/Divider';
+import SearchIcon from '@mui/icons-material/Search';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import AddIcon from '@mui/icons-material/Add';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
 
 export default function VehiclesList() {
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { showError } = useError();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const [search, setSearch] = useState('');
+  const [searchDebounced, setSearchDebounced] = useState('');
+  const [selected, setSelected] = useState<string[]>([]);
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const [menuVehicleId, setMenuVehicleId] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editing, setEditing] = useState<any | null>(null);
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [compareResult, setCompareResult] = useState<any | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
         const data = await getVehicles();
-        if (mounted) setVehicles(data);
+        if (mounted) setVehicles(data || []);
       } catch (err) {
         console.error('Failed to fetch vehicles', err);
         showError('Failed to load vehicles');
@@ -33,14 +75,71 @@ export default function VehiclesList() {
     };
   }, []);
 
+  // debounce search input
+  useEffect(() => {
+    const t = setTimeout(() => setSearchDebounced(search.trim()), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
   return (
     <Box sx={{ p: 2 }}>
-      <Typography variant="h5" gutterBottom>
-        Vehicles
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Search/filter by model, brand, price.
-      </Typography>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+        <Box>
+          <Typography variant="h5">Vehicles</Typography>
+          <Typography variant="body2" color="text.secondary">
+            Search/filter by model, brand, price.
+          </Typography>
+        </Box>
+
+        <Stack direction="row" spacing={1} alignItems="center">
+          <TextField
+            size="small"
+            placeholder="Search model or manufacturer"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <Tooltip title="Refresh">
+            <IconButton onClick={() => window.location.reload()}>
+              <RefreshIcon />
+            </IconButton>
+          </Tooltip>
+          {user && (user.role === 'ADMIN' || user.role === 'EVM_STAFF') && (
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreateOpen(true)}>
+              Create
+            </Button>
+          )}
+          <Button
+            variant="outlined"
+            startIcon={<CompareArrowsIcon />}
+            disabled={selected.length !== 2}
+            onClick={async () => {
+              if (selected.length === 2) {
+                try {
+                  setSubmitting(true);
+                  const r = await compareVehicles(selected[0], selected[1]);
+                  setCompareResult(r);
+                  setCompareOpen(true);
+                } catch (e) {
+                  showError('Compare failed');
+                } finally {
+                  setSubmitting(false);
+                }
+              }
+            }}
+          >
+            Compare
+          </Button>
+        </Stack>
+      </Stack>
+
+      <Divider sx={{ mb: 2 }} />
 
       <Box
         sx={{
@@ -49,7 +148,11 @@ export default function VehiclesList() {
           gap: 2,
         }}
       >
-        {(loading ? new Array(6).fill(null) : vehicles).map((v: any, idx: number) => (
+        {(loading ? new Array(6).fill(null) : vehicles.filter((v: any) => {
+          if (!searchDebounced) return true;
+          const s = searchDebounced.toLowerCase();
+          return (`${v.manufacturer} ${v.model} ${v.id}`).toLowerCase().includes(s);
+        })).map((v: any, idx: number) => (
           <Card key={v?.id ?? idx}>
             <CardContent>
               {loading ? (
@@ -59,11 +162,21 @@ export default function VehiclesList() {
                 </>
               ) : (
                 <>
-                  <Typography variant="subtitle1">
-                    <Link component={RouterLink} to={`/vehicles/${v.id}`}>
-                      {v.manufacturer} {v.model}
-                    </Link>
-                  </Typography>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <FormControlLabel
+                      control={<Checkbox checked={selected.includes(v.id)} onChange={() => {
+                        setSelected((prev) => prev.includes(v.id) ? prev.filter(x => x !== v.id) : [...prev, v.id]);
+                      }} />}
+                      label={
+                        <Link component={RouterLink} to={`/vehicles/${v.id}`}>
+                          {v.manufacturer} {v.model}
+                        </Link>
+                      }
+                    />
+                    <IconButton size="small" onClick={(e) => { setMenuAnchor(e.currentTarget); setMenuVehicleId(v.id); }}>
+                      <MoreVertIcon />
+                    </IconButton>
+                  </Stack>
                   <Typography variant="body2" color="text.secondary">
                     {v.price ? `${v.price}` : 'Price N/A'}
                   </Typography>
@@ -73,6 +186,66 @@ export default function VehiclesList() {
           </Card>
         ))}
       </Box>
+
+      {/* per-card menu */}
+      <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => { setMenuAnchor(null); setMenuVehicleId(null); }}>
+        <MenuItem onClick={() => { if (menuVehicleId) navigate(`/vehicles/${menuVehicleId}`); setMenuAnchor(null); }}>Details</MenuItem>
+        <MenuItem onClick={() => { if (menuVehicleId) { setEditing(vehicles.find(v => v.id === menuVehicleId)); setCreateOpen(true); } setMenuAnchor(null); }}>
+          <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
+        </MenuItem>
+        <MenuItem onClick={async () => { if (!menuVehicleId) return; if (!confirm('Delete this vehicle?')) return; try { await deleteVehicle(menuVehicleId); setVehicles((prev) => prev.filter(p => p.id !== menuVehicleId)); } catch (e) { showError('Delete failed'); } finally { setMenuAnchor(null); setMenuVehicleId(null); } }}>
+          <DeleteIcon fontSize="small" sx={{ mr: 1 }} /> Delete
+        </MenuItem>
+        <MenuItem onClick={() => { if (menuVehicleId) navigate(`/test-drives/create?vehicleId=${menuVehicleId}`); setMenuAnchor(null); }}>Schedule Test Drive</MenuItem>
+      </Menu>
+
+      {/* Create / Edit dialog */}
+      <Dialog open={createOpen} onClose={() => { setCreateOpen(false); setEditing(null); }} maxWidth="sm" fullWidth>
+        <DialogTitle>{editing ? 'Edit Vehicle' : 'Create Vehicle'}</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField label="Manufacturer" defaultValue={editing?.manufacturer || ''} id="mf" />
+            <TextField label="Model" defaultValue={editing?.model || ''} id="model" />
+            <TextField label="Price" defaultValue={editing?.price || ''} id="price" />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setCreateOpen(false); setEditing(null); }}>Cancel</Button>
+          <Button onClick={async () => {
+            const mf = (document.getElementById('mf') as HTMLInputElement).value;
+            const model = (document.getElementById('model') as HTMLInputElement).value;
+            const price = (document.getElementById('price') as HTMLInputElement).value;
+            const payload = { manufacturer: mf, model, price: Number(price) };
+            try {
+              setSubmitting(true);
+              if (editing) {
+                await updateVehicle(editing.id, payload);
+                setVehicles((prev) => prev.map(v => v.id === editing.id ? { ...v, ...payload } : v));
+              } else {
+                const created = await createVehicle(payload);
+                setVehicles((prev) => [created, ...prev]);
+              }
+              setCreateOpen(false);
+              setEditing(null);
+            } catch (e) {
+              showError('Save failed');
+            } finally {
+              setSubmitting(false);
+            }
+          }} variant="contained">{submitting ? <CircularProgress size={18} /> : 'Save'}</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Compare dialog */}
+      <Dialog open={compareOpen} onClose={() => setCompareOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Compare Vehicles</DialogTitle>
+        <DialogContent>
+          <pre>{JSON.stringify(compareResult, null, 2)}</pre>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCompareOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
