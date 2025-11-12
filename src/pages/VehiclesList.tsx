@@ -56,6 +56,11 @@ export default function VehiclesList() {
   const [compareOpen, setCompareOpen] = useState(false);
   const [compareResult, setCompareResult] = useState<any | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [formManufacturer, setFormManufacturer] = useState('');
+  const [formModel, setFormModel] = useState('');
+  const [formPrice, setFormPrice] = useState('');
+  const [formErrors, setFormErrors] = useState<{ manufacturer?: string; model?: string; price?: string }>({});
+  const [formError, setFormError] = useState('');
 
   useEffect(() => {
     let mounted = true;
@@ -74,6 +79,22 @@ export default function VehiclesList() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (createOpen) {
+      if (editing) {
+        setFormManufacturer(editing.manufacturer || '');
+        setFormModel(editing.model || '');
+        setFormPrice(editing.price ? String(editing.price) : '');
+      } else {
+        setFormManufacturer('');
+        setFormModel('');
+        setFormPrice('');
+      }
+      setFormErrors({});
+      setFormError('');
+    }
+  }, [createOpen, editing]);
 
   // debounce search input
   useEffect(() => {
@@ -200,35 +221,68 @@ export default function VehiclesList() {
       </Menu>
 
       {/* Create / Edit dialog */}
-      <Dialog open={createOpen} onClose={() => { setCreateOpen(false); setEditing(null); }} maxWidth="sm" fullWidth>
+      <Dialog open={createOpen} onClose={() => { setCreateOpen(false); setEditing(null); setFormError(''); }} maxWidth="sm" fullWidth>
         <DialogTitle>{editing ? 'Edit Vehicle' : 'Create Vehicle'}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField label="Manufacturer" defaultValue={editing?.manufacturer || ''} id="mf" />
-            <TextField label="Model" defaultValue={editing?.model || ''} id="model" />
-            <TextField label="Price" defaultValue={editing?.price || ''} id="price" />
+            <TextField
+              label="Manufacturer"
+              value={formManufacturer}
+              onChange={(e) => setFormManufacturer(e.target.value)}
+              error={Boolean(formErrors.manufacturer)}
+              helperText={formErrors.manufacturer}
+              disabled={submitting}
+            />
+            <TextField
+              label="Model"
+              value={formModel}
+              onChange={(e) => setFormModel(e.target.value)}
+              error={Boolean(formErrors.model)}
+              helperText={formErrors.model}
+              disabled={submitting}
+            />
+            <TextField
+              label="Price"
+              type="number"
+              value={formPrice}
+              onChange={(e) => setFormPrice(e.target.value)}
+              error={Boolean(formErrors.price)}
+              helperText={formErrors.price}
+              disabled={submitting}
+            />
+            {formError && (
+              <Typography color="error" variant="body2">{formError}</Typography>
+            )}
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => { setCreateOpen(false); setEditing(null); }}>Cancel</Button>
+          <Button onClick={() => { setCreateOpen(false); setEditing(null); setFormError(''); }}>Cancel</Button>
           <Button onClick={async () => {
-            const mf = (document.getElementById('mf') as HTMLInputElement).value;
-            const model = (document.getElementById('model') as HTMLInputElement).value;
-            const price = (document.getElementById('price') as HTMLInputElement).value;
-            const payload = { manufacturer: mf, model, price: Number(price) };
+            // client-side validation
+            const errs: any = {};
+            if (!formManufacturer.trim()) errs.manufacturer = 'Manufacturer is required';
+            if (!formModel.trim()) errs.model = 'Model is required';
+            if (!formPrice || isNaN(Number(formPrice))) errs.price = 'Valid price is required';
+            setFormErrors(errs);
+            if (Object.keys(errs).length) return;
+
+            const payload = { manufacturer: formManufacturer.trim(), model: formModel.trim(), price: Number(formPrice) };
             try {
               setSubmitting(true);
               if (editing) {
-                await updateVehicle(editing.id, payload);
-                setVehicles((prev) => prev.map(v => v.id === editing.id ? { ...v, ...payload } : v));
+                const updated = await updateVehicle(editing.id, payload);
+                setVehicles((prev) => prev.map(v => v.id === editing.id ? { ...v, ...updated } : v));
               } else {
                 const created = await createVehicle(payload);
                 setVehicles((prev) => [created, ...prev]);
               }
               setCreateOpen(false);
               setEditing(null);
-            } catch (e) {
-              showError('Save failed');
+              setFormError('');
+            } catch (e: any) {
+              const msg = e?.response?.data?.message || e?.message || 'Save failed';
+              setFormError(msg);
+              showError('Save failed: ' + msg);
             } finally {
               setSubmitting(false);
             }
