@@ -68,21 +68,10 @@ export default function VehiclesList() {
       try {
         const data = await getVehicles();
         if (mounted) setVehicles(data || []);
-            } catch (e: any) {
-              // try to map server-side validation errors
-              const serverErrors = e?.response?.data?.errors;
-              if (serverErrors && typeof serverErrors === 'object') {
-                const mapped: any = {};
-                Object.keys(serverErrors).forEach((k) => {
-                  mapped[k] = serverErrors[k];
-                });
-                setFormErrors(mapped);
-                setFormError('Validation failed');
-              } else {
-                const msg = e?.response?.data?.message || e?.message || 'Save failed';
-                setFormError(msg);
-                showError('Save failed: ' + msg);
-              }
+      } catch (e: any) {
+        console.error('Failed to fetch vehicles', e);
+        showError('Failed to load vehicles');
+      } finally {
         if (mounted) setLoading(false);
       }
     })();
