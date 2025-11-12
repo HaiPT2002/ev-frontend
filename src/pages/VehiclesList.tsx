@@ -214,7 +214,7 @@ export default function VehiclesList() {
         <MenuItem onClick={() => { if (menuVehicleId) { setEditing(vehicles.find(v => v.id === menuVehicleId)); setCreateOpen(true); } setMenuAnchor(null); }}>
           <EditIcon fontSize="small" sx={{ mr: 1 }} /> Edit
         </MenuItem>
-        <MenuItem onClick={async () => { if (!menuVehicleId) return; if (!confirm('Delete this vehicle?')) return; try { await deleteVehicle(menuVehicleId); setVehicles((prev) => prev.filter(p => p.id !== menuVehicleId)); } catch (e) { showError('Delete failed'); } finally { setMenuAnchor(null); setMenuVehicleId(null); } }}>
+        <MenuItem onClick={async () => { if (!menuVehicleId) return; if (!confirm('Delete this vehicle?')) return; try { await deleteVehicle(menuVehicleId); setVehicles((prev) => prev.filter(p => p.id !== menuVehicleId)); } catch (e: any) { const status = e?.response?.status; if (status === 403) { const role = user?.role || 'unknown'; showError(`Forbidden: deleting vehicles requires EVM_STAFF or ADMIN (current: ${role})`); } else { const msg = e?.response?.data?.message || e?.message || 'Delete failed'; showError(msg); } } finally { setMenuAnchor(null); setMenuVehicleId(null); } }}>
           <DeleteIcon fontSize="small" sx={{ mr: 1 }} /> Delete
         </MenuItem>
         <MenuItem onClick={() => { if (menuVehicleId) navigate(`/test-drives/create?vehicleId=${menuVehicleId}`); setMenuAnchor(null); }}>Schedule Test Drive</MenuItem>
@@ -280,9 +280,24 @@ export default function VehiclesList() {
               setEditing(null);
               setFormError('');
             } catch (e: any) {
-              const msg = e?.response?.data?.message || e?.message || 'Save failed';
-              setFormError(msg);
-              showError('Save failed: ' + msg);
+              const status = e?.response?.status;
+              const serverMsg = e?.response?.data?.message || e?.message || 'Save failed';
+              if (status === 403) {
+                const role = user?.role || 'unknown';
+                const hint = `Forbidden: creating vehicles requires EVM_STAFF or ADMIN role (current: ${role}). Please log in with an account that has sufficient privileges.`;
+                setFormError(hint);
+                showError(hint);
+              } else if (status === 400 && e?.response?.data?.errors) {
+                // map validation errors
+                const serverErrors = e.response.data.errors;
+                const mapped: any = {};
+                Object.keys(serverErrors).forEach((k) => (mapped[k] = serverErrors[k]));
+                setFormErrors(mapped);
+                setFormError('Validation failed');
+              } else {
+                setFormError(serverMsg);
+                showError('Save failed: ' + serverMsg);
+              }
             } finally {
               setSubmitting(false);
             }
