@@ -157,6 +157,11 @@ export async function getDealerTestDrives(dealerId: string, start?: string, end?
   return res.data;
 }
 
+export async function createTestDrive(payload: any) {
+  const res = await api.post('/api/test-drives', payload);
+  return res.data;
+}
+
 // VNPAY
 export async function createVnPayPayment(payload: any) {
   const res = await api.post('/api/payment/vnpay/create', payload);
